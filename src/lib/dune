@@ -1,5 +1,6 @@
 (library
  (name my_lib)
- (libraries )
+ (libraries)
  (inline_tests)
- (preprocess (pps ppx_expect)))
+ (preprocess
+  (pps ppx_expect)))

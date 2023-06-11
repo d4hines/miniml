@@ -1,0 +1,5 @@
+(library
+ (name lambda_calculus)
+ (inline_tests)
+ (preprocess
+  (pps ppx_expect ppx_deriving.show)))

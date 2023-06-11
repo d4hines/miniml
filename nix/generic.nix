@@ -46,6 +46,7 @@ with ocamlPackages; rec {
       piaf
       lwt
       yojson
+      ppx_deriving
 
       ppx_expect
     ];
