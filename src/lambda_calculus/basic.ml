@@ -33,7 +33,7 @@ let rec substitute var body expr =
   | Var x -> Var x
   | Abstraction (var', body) -> Abstraction (var', substitute var body expr)
   | Application (a, b) ->
-    Application (substitute var a expr, substitute var b expr)
+      Application (substitute var a expr, substitute var b expr)
 
 let%expect_test "substitution" =
   let expr = lambda "x" (lambda "y" (lambda "z" (apply (var "x") (var "x")))) in
@@ -60,11 +60,11 @@ let%expect_test "substitution" =
 let rec eval expr =
   match expr with
   | Application (a, b) -> (
-    (* Format.printf "Application: %a %a\n" pp_expression a pp_expression b; *)
-    let a, b = (eval a, eval b) in
-    match a with
-    | Abstraction (var, body) -> eval @@ substitute var body b
-    | _ -> Application (a, b))
+      (* Format.printf "Application: %a %a\n" pp_expression a pp_expression b; *)
+      let a, b = (eval a, eval b) in
+      match a with
+      | Abstraction (var, body) -> eval @@ substitute var body b
+      | _ -> Application (a, b))
   | Var var -> Var var
   | Abstraction (var, expr) -> Abstraction (var, eval expr)
 

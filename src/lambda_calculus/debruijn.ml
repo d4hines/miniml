@@ -11,7 +11,7 @@ let rec string_of_expression = function
   | Var n -> string_of_int n
   | Abstraction body -> Format.sprintf "(λ %s)" (string_of_expression body)
   | Application (a, b) ->
-    Format.sprintf "(%s) %s" (string_of_expression a) (string_of_expression b)
+      Format.sprintf "(%s) %s" (string_of_expression a) (string_of_expression b)
 
 let pp fmt expr = Format.fprintf fmt "%s" (string_of_expression expr)
 
@@ -20,7 +20,7 @@ let rec substitute var body substitution =
   | Var n when n = var -> substitution
   | Var n -> Var n
   | Application (a, b) ->
-    Application (substitute var a substitution, substitute var b substitution)
+      Application (substitute var a substitution, substitute var b substitution)
   | Abstraction body -> Abstraction (substitute (var + 1) body substitution)
 
 let print_expr label expr = Format.printf "%s => %a\n%!" label pp expr
@@ -31,10 +31,10 @@ let rec eval body =
   | Var n -> Var n
   | Abstraction body -> Abstraction (eval body)
   | Application (a, b) -> (
-    let a, b = (eval a, eval b) in
-    match a with
-    | Abstraction body -> eval @@ substitute 1 body b
-    | a -> Application (a, b))
+      let a, b = (eval a, eval b) in
+      match a with
+      | Abstraction body -> eval @@ substitute 1 body b
+      | a -> Application (a, b))
 
 let lambda expr = Abstraction expr
 let apply a b = Application (a, b)

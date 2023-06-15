@@ -13,10 +13,10 @@ let rec eval frame expr =
   | Var var -> String_map.find_opt var frame |> Option.value ~default:expr
   | Abstraction (param, body) -> Abstraction (param, eval frame body)
   | Application (a, b) -> (
-    let a, b = (eval frame a, eval frame b) in
-    match a with
-    | Abstraction (param, body) -> eval (String_map.add param b frame) body
-    | _ -> Application (a, b))
+      let a, b = (eval frame a, eval frame b) in
+      match a with
+      | Abstraction (param, body) -> eval (String_map.add param b frame) body
+      | _ -> Application (a, b))
 
 let eval expr = eval String_map.empty expr
 let lambda var expr = Abstraction (var, expr)
