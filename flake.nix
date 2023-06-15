@@ -40,6 +40,7 @@
           odoc
           ocaml
           dune_3
+          utop
           nixfmt
         ];
       };
