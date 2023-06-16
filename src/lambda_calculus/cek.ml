@@ -1,25 +1,41 @@
 (* Translating https://matt.might.net/articles/cek-machines/ from Haskell to OCaml *)
-type expr =
-  | Lam of lambda
-  | Var of string
-  | App of expr * expr
-  | Int of int
-  | Succ of expr
-  | Pred of expr
-  | IsZero of expr
+type expr = Lam of lambda | Var of string | App of expr * expr
+and lambda = string * expr
 
-and lambda = string * expr [@@deriving show]
+let church_numeral_to_decimal expr =
+  match expr with
+  | Lam (f, Lam (x, expr)) when f != x ->
+      let rec count_apps expr acc =
+        match expr with
+        | App (Var var, expr) ->
+            if var == f then count_apps expr (acc + 1) else None
+        | Var v when v == x -> Some acc
+        | _ -> None
+      in
+      count_apps expr 0
+  | _ -> None
+
+let rec pp_lambda : Format.formatter -> lambda -> unit =
+ fun fmt (var, expr) -> Format.fprintf fmt "\\%s.%a" var pp_expr expr
+
+and pp_expr fmt expr =
+  match church_numeral_to_decimal expr with
+  | Some x -> Format.fprintf fmt "Church(%d)" x
+  | None -> (
+      match expr with
+      | Lam lambda -> pp_lambda fmt lambda
+      | Var x -> Format.fprintf fmt "%s" x
+      | App (e1, e2) -> Format.fprintf fmt "(%a %a)" pp_expr e1 pp_expr e2)
 
 module Environment = Map.Make (String)
 
 type env = data Environment.t
-and data = Clo of lambda * env | IntV of int
+and data = Clo of lambda * env
 
 let rec pp_data fmt data =
   match data with
   | Clo (lambda, env) ->
       Format.fprintf fmt "Clo (%a, %a)" pp_lambda lambda pp_env env
-  | IntV x -> Format.fprintf fmt "%d" x
 
 and pp_env fmt env =
   let () = Format.fprintf fmt "{" in
@@ -36,8 +52,7 @@ let%expect_test "data" =
         |> Environment.add "id" (Clo (("y", Var "y"), Environment.empty)) )
   in
   Format.printf "%a" pp_data data;
-  [%expect
-    {| Clo (("x", (Cek.Var "x")), {id => Clo (("y", (Cek.Var "y")), {});}) |}]
+  [%expect {| Clo (\x.x, {id => Clo (\y.y, {});}) |}]
 
 type kont =
   | (* The empty continuation *) Mt
@@ -46,19 +61,10 @@ type kont =
   | (* The "I contain an evaluated function, now I'm evaluating an argument term" continuation *)
     Fn of
       lambda * env * kont
-  | IsZeroK of kont
-  | SuccK of kont
-  | PredK of kont
 [@@deriving show]
 
 type state = expr * env * kont [@@deriving show]
 
-let inject (e : expr) : state =
-  let empty_env = Environment.empty in
-  (e, empty_env, Mt)
-
-let church_true = Lam ("x", Lam ("y", Var "x"))
-let church_false = Lam ("x", Lam ("y", Var "y"))
 let counter = ref 0
 
 let get_counter () =
@@ -66,18 +72,17 @@ let get_counter () =
   counter := x + 1;
   x
 
-let rec step (state : state) : state =
+let step (state : state) : state =
   (* Format.printf "state %d: %a\n---------------------------------\n%!"
      (get_counter ()) pp_state state; *)
   match state with
   (* Evaluating a reference? Look it up in the environment. *)
   | Var x, env, k -> (
-      match Environment.find x env with
-      | Clo (lam, env') -> (Lam lam, env', k)
-      | IntV x ->
-          (Int x, env, k)
+      match Environment.find_opt x env with
+      | Some (Clo (lam, env')) ->
+          (Lam lam, env', k)
           (* This seems a bit wrong to me. We're going backwords from data to ast... *)
-      )
+      | None -> failwith @@ "unable to find variable " ^ x)
   (* Evaluating a function application? First evaluate the function. *)
   | App (f, e), env, k -> (f, env, Ar (e, env, k))
   (* Evaluated the function? Go evaluate the argument term. *)
@@ -86,134 +91,117 @@ let rec step (state : state) : state =
   | Lam lam, env, Fn ((x, e), env', k) ->
       let new_env = Environment.add x (Clo (lam, env)) env' in
       (e, new_env, k)
-  | (Int i, env, k) as state -> (
-      match k with
-      | IsZeroK k ->
-          let bool = if i = 0 then church_true else church_false in
-          step (bool, env, k)
-      | SuccK k -> step (Int (i + 1), env, k)
-      | PredK k ->
-          let i = if i = 0 then 0 else i - 1 in
-          step (Int i, env, k)
-      | Fn ((x, e), env', k) ->
-          let new_env = Environment.add x (IntV i) env' in
-          step (e, new_env, k)
-          (* let x = (e, new_env, k) in
-             Format.printf "returning state: %a" pp_state x; *)
-      | Ar _ ->
-          Format.printf "State: %a\n%!" pp_state state;
-          failwith "Cannot apply an argument to an integer"
-      | Mt -> state)
-  | IsZero e, env, k -> (e, env, IsZeroK k)
-  | Succ e, env, k -> (e, env, SuccK k)
-  | Pred e, env, k -> (e, env, PredK k)
   | Lam _, _, Mt -> state
-  | Lam _, _, SuccK _ | Lam _, _, PredK _ | Lam _, _, IsZeroK _ ->
-      failwith "Invalid transition"
 
-let is_final state = match state with _, _, Mt -> true | _ -> false
+let is_final state = match state with Lam _, _, Mt -> true | _ -> false
 
-let rec eval i state =
-  if i > 5000 then failwith "evaluation too deep";
-  match step state with
-  | result when not @@ is_final result -> eval (i + 1) result
-  | Var x, env, _ -> Environment.find x env
-  | Int x, _, _ -> IntV x
-  | state -> eval (i + 1) state
-(* let state_str = show_state state in
-   failwith @@ "unexpected final state: " ^ state_str *)
+let rec terminal_whnf : state -> state =
+ fun s -> if is_final s then s else terminal_whnf (step s)
 
+(* let rec eval_normalize state acc = *)
+(* let state = terminal_whnf state in
+   if state == acc then acc
+   else
+     match state with
+     | Lam (var, expr), env, Mt ->
+         Format.printf "expr: %a\n%!" pp_expr expr;
+         Format.printf "env: %a\n%!" pp_env env;
+         let expr', _env, _ = eval_normalize (expr, env, Mt) state in
+         (Lam (var, expr'), env, Mt)
+     | _ -> assert false *)
+
+let inject (e : expr) : state =
+  let empty_env = Environment.empty in
+  (e, empty_env, Mt)
+
+let eval_normalize expr =
+  match terminal_whnf (inject expr) with
+  | Lam (_var, _expr), env, Mt -> (
+      let () = Format.printf "_expr: %a\n%!" pp_expr _expr in
+      let () = Format.printf "env: %a\n%!" pp_env env in
+      match terminal_whnf (_expr, env, Mt) with
+      | expr, _env', _ -> (Lam (_var, expr), env, Mt))
+  | _ -> assert false
+
+let eval expr = terminal_whnf (inject expr)
 let initial_environment = Environment.empty
-let eval expr = eval 0 (expr, initial_environment, Mt)
 let lambda var expr = Lam (var, expr)
 let apply a b = App (a, b)
-let int x = Int x
-let var x = Var x
-let unit = Int 0
-let true_ = lambda "x" (lambda "y" (apply (var "x") unit))
-let false_ = lambda "x" (lambda "y" (apply (var "y") unit))
-let succ a = Succ a
-let pred a = Pred a
-let is_zero a = IsZero a
 let apply2 f a b = apply (apply f a) b
-
-let z =
-  lambda "g"
-    (apply
-       (lambda "x"
-          (apply (var "g")
-             (lambda "v" (apply (apply (var "x") (var "x")) (var "v")))))
-       (lambda "x"
-          (apply (var "g")
-             (lambda "v" (apply (apply (var "x") (var "x")) (var "v"))))))
-
-let if_e =
-  lambda "condition"
-    (lambda "consequent"
-       (lambda "alternative"
-          (apply
-             (apply (var "condition") (var "consequent"))
-             (var "alternative"))))
-
-let if_ condition consequent alternative =
-  apply (apply (apply if_e condition) consequent) alternative
-
+let var x = Var x
+let id_e = lambda "x" (var "x")
+let id x = apply id_e x
 let thunk a = lambda "_" a
 
-let plus_e =
-  apply z
-    (lambda "h"
-       (lambda "a"
-          (lambda "b"
-             (if_
-                (is_zero (var "b"))
-                (thunk (var "a"))
-                (thunk (apply2 (var "h") (succ (var "a")) (pred (var "b"))))))))
+module Church_numerals = struct
+  let zero = lambda "f" (lambda "x" (var "x"))
+  let one = lambda "f" (lambda "x" (apply (var "f") (var "x")))
 
-let minus_e =
-  apply z
-    (lambda "h"
-       (lambda "a"
-          (lambda "b"
-             (if_
-                (is_zero (var "b"))
-                (thunk (var "a"))
-                (thunk (apply2 (var "h") (pred (var "a")) (pred (var "b"))))))))
+  let plus_e =
+    lambda "m"
+      (lambda "n"
+         (lambda "f"
+            (lambda "x"
+               (apply2 (var "m") (var "f")
+                  (apply2 (var "n") (var "f") (var "x"))))))
 
-let ( + ) a b = apply2 plus_e a b
-let ( - ) a b = apply2 minus_e a b
-let print_result label value = Format.printf "%s = %a\n%!" label pp_data value
+  let succ_e =
+    lambda "n"
+      (lambda "f"
+         (lambda "x"
+            (apply (apply (apply plus_e (var "n")) (var "f")) (var "x"))))
+
+  let unit = zero
+  let true_ = lambda "a" (lambda "b" (apply (var "a") unit))
+  let false_ = lambda "a" (lambda "b" (apply (var "b") unit))
+
+  let if_e =
+    lambda "pred"
+      (lambda "a" (lambda "b" (apply2 (var "pred") (var "a") (var "b"))))
+
+  let if_ cond a b = apply (apply2 if_e cond a) b
+  let is_zero = lambda "n" (apply (thunk false_) true_)
+
+  let pred_e =
+    let true_ = lambda "a" (lambda "b" (var "a")) in
+    let false_ = lambda "a" (lambda "b" (var "b")) in
+    let pair =
+      lambda "x"
+        (lambda "y" (lambda "f" (apply2 (var "f") (var "x") (var "y"))))
+    in
+    let fst = lambda "p" (apply (var "p") true_) in
+    let snd = lambda "p" (apply (var "p") false_) in
+    let shift =
+      lambda "p"
+        (apply2 pair (apply snd (var "p")) (apply succ_e (apply snd (var "p"))))
+    in
+    lambda "n" (apply fst (apply2 (var "n") shift (apply2 pair zero zero)))
+
+  let succ x = apply succ_e x
+  let pred x = apply pred_e x
+
+  let z =
+    lambda "g"
+      (let h =
+         lambda "x"
+           (apply (var "g") (lambda "v" (apply2 (var "x") (var "x") (var "v"))))
+       in
+       apply h h)
+end
+
+let print_result label state = Format.printf "%s = %a\n%!" label pp_state state
 
 let%expect_test "eval" =
-  print_result "id" @@ eval
-  @@ apply (lambda "x" (var "x")) (lambda "hello" (Var "hello"));
-  print_result "id with ints" @@ eval @@ apply (lambda "x" (var "x")) (int 1);
-  print_result "int should eval to int" @@ eval (int 3);
-  print_result "is_zero 0" @@ eval (apply2 (is_zero (int 0)) (int 1) (int 0));
-  print_result "is_zero 3" @@ eval (apply2 (is_zero (int 3)) (int 1) (int 0));
-  print_result "is_zero true"
-  @@ eval (apply (apply2 if_e church_true (int 1)) (int 0));
-  print_result "is_zero false" @@ eval (if_ (is_zero (int 1)) (int 1) (int 0));
-  print_result "pred 3" @@ eval (pred (int 3));
-  print_result "pred 0" @@ eval (pred (int 0));
-  print_result "succ 0" @@ eval (succ (int 0));
-  print_result "succ 1" @@ eval (succ (int 1));
-  (* print_result "plus" @@ eval (int 2 + int 1); *)
-  (* print_result "minus" @@ eval (int 4 - int 3); *)
-  (*
-      
-      
-       *)
+  let open Church_numerals in
+  (* let two =
+       lambda "z" (lambda "z'" (apply (var "z") (apply (var "z") (var "z'"))))
+     in *)
+  (* print_result "one" @@ eval @@ id one;
+     print_result "two" @@ eval @@ two; *)
+  print_result "succ zero" @@ eval_normalize @@ succ zero;
   [%expect
     {|
-    id = Clo (("hello", (Cek.Var "hello")), {})
-    id with ints = 1
-    int should eval to int = 3
-    is_zero 0 = 1
-    is_zero 3 = 0
-    is_zero true = 1
-    is_zero false = 0
-    pred 3 = 2
-    pred 0 = 0
-    succ 0 = 1
-    succ 1 = 2 |}]
+    _expr: \x.(((\m.\n.\f.\x.((m f) ((n f) x)) n) f) x)
+    env: {n => Clo (\f.\x.x, {});}
+    succ zero = (\f.\x.(((\m.\n.\f.\x.((m f) ((n f) x)) n) f) x),
+                 {n => Clo (\f.\x.x, {});}, Cek.Mt) |}]
