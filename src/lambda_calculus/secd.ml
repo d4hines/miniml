@@ -1,3 +1,5 @@
+[@@@warning "-27"]
+
 (* Adapted from https://github.com/techcentaur/Krivine-Machine/blob/master/SECD.ml *)
 
 (* Expressions *)
@@ -56,6 +58,7 @@ type opcode =
   | TUP
   | PROJ
   | COND of opcode list * opcode list
+[@@deriving show]
 
 (* Interdependent types *)
 type table = (string * answer) list
@@ -69,9 +72,12 @@ and answer =
 and stack = answer list
 and environment = table
 and control = opcode list
-and dump = (stack * environment * control) list
+and dump = (stack * environment * control) list [@@deriving show]
 
-let _env = [ ("x", I 3); ("y", I 5); ("z", B true) ]
+let initial_env =
+  [ (* ("x", I 3);
+       ("y", I 5);
+       ("z", B true) *) ]
 
 (* exceptions *)
 exception InvalidOperation
@@ -178,4 +184,4 @@ let rec secdmachine = function
   | _ -> raise InvalidOperation
 
 (* execute call *)
-let execute oplist = secdmachine ([], _env, oplist, [])
+let execute oplist = secdmachine ([], initial_env, oplist, [])
