@@ -47,6 +47,7 @@ with ocamlPackages; rec {
       lwt
       yojson
       ppx_deriving
+      camlp-streams
 
       ppx_expect
     ];

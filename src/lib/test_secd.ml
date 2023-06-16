@@ -1,3 +1,4 @@
+open Ast
 open Secd
 
 let lambda var expr = Abs (var, expr)
