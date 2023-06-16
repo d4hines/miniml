@@ -150,17 +150,6 @@ let print_expr label value = Format.printf "%s = %a\n%!" label pp_value value
 let eval = interp initial_context
 
 let%expect_test "eval" =
-  (* print_expr "ex1" @@ eval (lambda "x" (lambda "y" (int 1)));
-     print_expr "ex2" @@ eval (apply (lambda "x" (var "x")) (int 2));
-     print_expr "printing ints" @@ eval (apply (var "debug") (int 4));
-     print_expr "succ" @@ eval (apply (var "succ") (int 5));
-     print_expr "let"
-     @@ eval (let_ "magic_num" (int 6) (apply (var "succ") (var "magic_num"))); *)
-  (* print_expr "random y stuff"
-     @@ eval
-          (apply
-             (apply y (lambda "h" (lambda "n" (apply (var "h") (succ (var "n"))))))
-             (int 0)); *)
   print_expr "is_zero true" @@ eval (if_ (is_zero (int 0)) (int 1) (int 2));
   print_expr "is_zero false" @@ eval (if_ (is_zero (int 1)) (int 1) (int 2));
   print_expr "pred 3" @@ eval (pred (int 3));
@@ -170,23 +159,6 @@ let%expect_test "eval" =
   print_expr "debug test" @@ eval (debug (int 4));
   print_expr "plus" @@ eval (int 2 + int 1);
   print_expr "minus" @@ eval (int 4 - int 3);
-  (* print_expr "ex2"
-     @@ eval
-          (apply (lambda "x" (var "x")) (apply (lambda "y" (var "y")) (var "z")));
-
-     print_expr "ex3"
-     @@ eval
-          (apply
-             (lambda "z"
-                (apply
-                   (lambda "x" (var "x"))
-                   (apply (lambda "y" (var "y")) (var "z"))))
-             (lambda "x" (var "x")));
-     print_expr "ex4" (eval (apply (lambda "x" (lambda "y" (var "x"))) (var "a")));
-     print_expr "ex5" (eval (apply (apply true_ (var "a")) (var "b")));
-     print_expr "expr6" (eval if_);
-     print_expr "expr7"
-       (eval (apply (apply (apply if_ true_) (var "foo")) (var "bar"))); *)
   [%expect
     {|
     is_zero true = (Eduardos_lc.VNat 1)
