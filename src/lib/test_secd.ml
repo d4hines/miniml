@@ -1,4 +1,4 @@
-open Ast
+open Ast.Phase0
 open Secd
 
 let lambda var expr = Abs (var, expr)

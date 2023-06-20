@@ -1,6 +1,11 @@
+(menhir
+ (modules parser))
+
+(ocamllex lexer)
+
 (library
  (name my_lib)
- (libraries camlp-streams)
+ (libraries camlp-streams yojson)
  (inline_tests)
  (preprocess
   (pps ppx_expect ppx_deriving.show)))
