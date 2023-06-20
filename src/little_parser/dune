@@ -1,0 +1,8 @@
+(menhir
+ (modules parser))
+
+(ocamllex lexer)
+
+(executable
+ (public_name little-parser)
+ (name little_parser))

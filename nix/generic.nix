@@ -48,6 +48,7 @@ with ocamlPackages; rec {
       yojson
       ppx_deriving
       camlp-streams
+      menhir 
 
       ppx_expect
     ];
