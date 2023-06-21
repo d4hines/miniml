@@ -1,8 +1,8 @@
 module Phase0 = struct
   type exp =
     | Int of int
-    | Var of string
-    | Abs of string * exp
+    | Var of int
+    | Abs of exp
     | App of exp * exp
     | Succ of exp
     | Pred of exp
