@@ -9,23 +9,19 @@
 rule token = parse
 | [' ' '\t' '\n'] (* also ignore newlines, not only whitespace and tabs *)
     { token lexbuf }
-(* add the semicolon as a new token *)
-| ';'
-    { SEMICOLON }
+| "in" { IN }
+| "let" { LET }
+| "fun" { FUN }
 | ['0'-'9']+ as i
     { INT (int_of_string i) }
-| '+'
-    { PLUS }
-| '-'
-    { MINUS }
-| '*'
-    { TIMES }
-| '/'
-    { DIV }
 | '('
     { LPAREN }
 | ')'
     { RPAREN }
+| "->" { ARROW }
+| ['a'-'z' '_']+ as var
+   { VAR var}
+| "=" { EQ }
 | eof
     { EOF }
 | _

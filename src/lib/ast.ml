@@ -76,6 +76,7 @@ module Phase1 = struct
     | Ifthenelse of (exp * exp * exp)
 
   (*
+        
        int := [0-9]+
        bool := #t | #f
        var := [a-z]+
@@ -90,45 +91,11 @@ module Phase1 = struct
 end
 
 module Phase2 = struct
-  type token =
-    | Let
-    | In
-    | Fun
+  type expr =
     | Var of string
-    | Arrow
+    | Abs of string * expr
+    | App of expr * expr
+    | Let of string * expr * expr
     | Int of int
-    | Plus
-    | If
-    | Then
-    | Else
-    | Equal
-
-  (*
-       grammar
-       --------
-       int := [0-9]+
-       bool := #t | #f
-       var := [a-z]+
-       op := + | - | =
-       atom := int | bool | var | op
-       if := (if expr expr expr)
-       fun := (fun var expr)
-       let := (let var = expr in expr)
-       app := (expr expr)
-       expr :=  atom | if | fun | let | app
-  *)
-  type op = Plus | Minus | Equal [@@deriving show]
-
-  type atom = Int of int | Bool of bool | Var of string | Op of op
-  [@@deriving show]
-
-  type exp =
-    | Atom of atom
-    | Abs of string * exp
-    | App of exp * exp
-    | Add of exp * exp
-    | Sub of exp * exp
-    | Equ of exp * exp
-    | Ifthenelse of (exp * exp * exp)
   [@@deriving show]
 end
