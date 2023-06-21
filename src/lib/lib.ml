@@ -1,5 +1,17 @@
 let message = "hello world"
 
+let read_file filename =
+  let ic = open_in filename in
+  let rec loop acc =
+    try
+      let line = input_line ic in
+      loop (acc ^ "\n" ^ line)
+    with End_of_file ->
+      close_in ic;
+      acc
+  in
+  loop ""
+
 let%expect_test "dummy test" =
   print_endline message;
   [%expect {|hello world |}]
@@ -28,3 +40,11 @@ let%expect_test "parsing tests" =
       apply 2: (Ast.Phase2.App (
                   (Ast.Phase2.App ((Ast.Phase2.Var "a"), (Ast.Phase2.Var "b"))),
                   (Ast.Phase2.Var "c"))) |}]
+
+let%expect_test "foo" =
+  let file = read_file "./examples/parsing.ml" in
+  Format.printf "%s" file;
+  [%expect {|
+    let x x = 1 in
+    let y y = 2 in
+    3 |}]

@@ -6,6 +6,8 @@
 (library
  (name my_lib)
  (libraries camlp-streams yojson)
- (inline_tests)
+ (inline_tests
+  (deps
+   (source_tree ./examples)))
  (preprocess
   (pps ppx_expect ppx_deriving.show)))

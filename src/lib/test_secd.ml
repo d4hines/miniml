@@ -72,6 +72,8 @@ let%expect_test "secd tests" =
   run_code "pred 0" @@ pred (int 0);
   run_code "is_zero" @@ if_ (is_zero (int 0)) (thunk (int 1)) (thunk (int 0));
   run_code "plus_z 1 2" @@ (int 1 + int 2);
+  run_code "close: true" @@ true_;
+  run_code "close: false" @@ false_;
   [%expect
     {|
     true 0 1: (Secd.I 0)
@@ -80,4 +82,14 @@ let%expect_test "secd tests" =
     pred 1: (Secd.I 0)
     pred 0: (Secd.I -1)
     is_zero: (Secd.I 1)
-    plus_z 1 2: (Secd.I 3) |}]
+    plus_z 1 2: (Secd.I 3)
+    close: true: (Secd.Vclos ([], "x",
+                    [(Secd.CLOS ("y",
+                        [(Secd.LOOKUP "x"); (Secd.INT 0); Secd.CALL; Secd.RET]));
+                      Secd.RET]
+                    ))
+    close: false: (Secd.Vclos ([], "x",
+                     [(Secd.CLOS ("y",
+                         [(Secd.LOOKUP "y"); (Secd.INT 0); Secd.CALL; Secd.RET]));
+                       Secd.RET]
+                     )) |}]
