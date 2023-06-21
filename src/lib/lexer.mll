@@ -9,6 +9,7 @@
 rule token = parse
 | [' ' '\t' '\n'] (* also ignore newlines, not only whitespace and tabs *)
     { token lexbuf }
+| "(*"               { comment lexbuf; token lexbuf } 
 | "in" { IN }
 | "let" { LET }
 | "fun" { FUN }
@@ -26,3 +27,7 @@ rule token = parse
     { EOF }
 | _
     { raise (Error (Printf.sprintf "At offset %d: unexpected character.\n" (Lexing.lexeme_start lexbuf))) }
+and comment  = parse
+  | "*)"              { () }
+  | _                 { comment lexbuf }
+  | eof               { failwith "Unfinished comment" }

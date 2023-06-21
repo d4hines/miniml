@@ -1,0 +1,13 @@
+(* church encodings, combinators, and utility functions *)
+(* note the missing final expression at the end of the file *)
+let true_ = fun x -> fun y -> x in
+let false = fun x -> fun y -> y in
+let if_ = fun condition -> fun consequent -> fun alternative -> (condition consequent alternative) in
+let z = fun f ->
+    let g = fun x -> (f (fun v -> ((x x) v))) in
+    (g g)
+in
+let plus = (z (fun h -> fun a -> fun b ->
+           (if_ (is_zero b)
+             (fun _ -> a)
+             (fun _ -> (h (succ a) (pred b)))))) in
