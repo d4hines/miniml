@@ -9,9 +9,9 @@ let int x = Int x
 let unit = Int 0
 let true_ = lambda "x" (lambda "y" (apply (var "x") unit))
 let false_ = lambda "x" (lambda "y" (apply (var "y") unit))
-let succ x = Add (x, int 1)
-let pred x = Sub (x, int 1)
-let is_zero x = Ifthenelse (Equ (x, int 0), true_, false_)
+let succ x = Succ x
+let pred x = Pred x
+let is_zero x = IsZero x
 
 let if_e =
   lambda "condition"
@@ -80,7 +80,7 @@ let%expect_test "secd tests" =
     false 0 1: (Secd.I 1)
     succ 1: (Secd.I 2)
     pred 1: (Secd.I 0)
-    pred 0: (Secd.I -1)
+    pred 0: (Secd.I 0)
     is_zero: (Secd.I 1)
     plus_z 1 2: (Secd.I 3)
     close: true: (Secd.Vclos ([], "x",
