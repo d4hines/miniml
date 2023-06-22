@@ -1,6 +1,6 @@
 %{
 
-open Ast.Phase2
+open Ast
 
 %}
 /* taken from https://github.com/bryphe/hello-menhir */

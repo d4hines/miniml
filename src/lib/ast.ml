@@ -1,84 +1,32 @@
-module Phase0 = struct
-  type exp =
-    | Int of int
-    | Var of int
-    | Abs of exp
-    | App of exp * exp
-    | Succ of exp
-    | Pred of exp
-    | IsZero of exp
-end
+type expr =
+  | Var of string
+  | Abs of string * expr
+  | App of expr * expr
+  | Let of string * expr * expr
+  | Int of int
+[@@deriving show]
 
-module Phase1 = struct
-  (* type exp =
-       | PlusExp of exp * exp
-       | SubExp of exp * exp
-       | MulExp of exp * exp
-       | DivExp of exp * exp
-       | Variable of string
-       | Number of int
-       | LTExp of exp * exp
-       | GTExp of exp * exp
-       | AndExp of exp * exp
-       | OrExp of exp * exp
-       | Bool of bool
-       | Fun of string * exp
-       | App of exp * exp
-       | Let of string * exp * exp
-       | IfThenElse of exp * exp * exp
-     [@@deriving show] *)
+let rec find_position el stack acc =
+  match stack with
+  | hd :: _ when hd = el -> acc
+  | _ :: tl -> find_position el tl (acc + 1)
+  | [] -> raise Not_found
 
-  (*
-      let x = (a b) in
-      let y = fun x -> fun y -> x in
-      if false then
-        ((y (x + x)) 0)
-      else
-        7
-   *)
-  (*
-      IDENT = [a-z]+
-      LET := let IDENT = EXPR in EXPR
-      INT := [0-9]+
-      VAR := IDENT
-      ATOM := VAR | INT
-      LAMBDA := fun x -> EXPR
-      APPLY_ABLE :=
-      APP := ((LAMBDA) ()) |
-      EXPR = VAR | LET | ATOM
-  *)
-  type exp =
-    | Int of int
-    | Bool of bool
-    | Var of string
-    | Abs of string * exp
-    | App of exp * exp
-    | Add of exp * exp
-    | Sub of exp * exp
-    | Equ of exp * exp
-    | Ifthenelse of (exp * exp * exp)
+let find_position el stack = find_position el stack 0
 
-  (*
-        
-       int := [0-9]+
-       bool := #t | #f
-       var := [a-z]+
-       op := + | - | =
-       atom := int | bool | var | op
-       if := (if expr expr expr)
-       fun := (fun var expr)
-       let := (let )
-       app := (expr expr)
-       expr :=  atom | if | fun | let | app
-  *)
-end
+(* TODO: better name *)
+let rec to_debruijn expr stack =
+  match expr with
+  | App (Var "succ", expr) -> Secd.Succ (to_debruijn expr stack)
+  | App (Var "pred", expr) -> Secd.Pred (to_debruijn expr stack)
+  | App (Var "is_zero", expr) -> Secd.IsZero (to_debruijn expr stack)
+  | Var x -> Secd.Var (find_position x stack)
+  | Abs (x, expr) ->
+      let stack = x :: stack in
+      Secd.Abs (to_debruijn expr stack)
+  | App (e1, e2) -> Secd.App (to_debruijn e1 stack, to_debruijn e2 stack)
+  | Let (x, e1, e2) ->
+      Secd.Let (to_debruijn e1 stack, to_debruijn e2 (x :: stack))
+  | Int x -> Secd.Int x
 
-module Phase2 = struct
-  type expr =
-    | Var of string
-    | Abs of string * expr
-    | App of expr * expr
-    | Let of string * expr * expr
-    | Int of int
-  [@@deriving show]
-end
+let to_debruijn expr = to_debruijn expr []

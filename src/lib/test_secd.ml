@@ -1,4 +1,3 @@
-open Ast.Phase0
 open Secd
 
 let lambda expr = Abs expr
@@ -67,7 +66,8 @@ let%expect_test "secd tests" =
   (* run_code "plus_z 1 2" @@ (int 1 + int 2); *)
   run_code "close: true" @@ true_;
   run_code "close: false" @@ false_;
-
+  run_code "let" @@ Let (int 1, var 0);
+  run_code "nested let" @@ Let (int 1, Let (int 2, var 1));
   [%expect
     {|
     true 0 1: (Secd.I 0)
@@ -85,4 +85,6 @@ let%expect_test "secd tests" =
                      [(Secd.CLOS
                          [(Secd.LOOKUP 0); (Secd.INT 0); Secd.CALL; Secd.RET]);
                        Secd.RET]
-                     )) |}]
+                     ))
+    let: (Secd.I 1)
+    nested let: (Secd.I 1) |}]
