@@ -13,12 +13,14 @@ type opcode =
   | ISZERO
 [@@deriving show]
 
+type control = opcode list [@@deriving show]
+
 type table = answer list
-and answer = I of int | Vclos of table * control
-and stack = answer list
-and environment = table
-and control = opcode list
-and dump = (stack * environment * control) list [@@deriving show]
+and answer = I of int | Vclos of table * control [@@deriving show]
+
+type stack = answer list [@@deriving show]
+type environment = table [@@deriving show]
+type dump = (stack * environment * control) list [@@deriving show]
 
 exception InvalidOperation
 exception Variable_not_intialized
