@@ -163,37 +163,39 @@ let%expect_test "stdlib parse" =
 let show_debruijn x =
   let lexbuf = Lexing.from_string x in
   let result = Parser.expr Lexer.token lexbuf in
-  let x = Ast.to_debruijn result in
-  Format.printf "debruijn: %a\n" Secd.pp_debruijn_expr x
+  let x = Compiler.to_debruijn result in
+  Format.printf "debruijn: %a\n" Compiler.pp_debruijn_expr x
 
 let%expect_test "id" =
   show_debruijn "fun x -> x";
-  [%expect {| debruijn: (Secd.Abs (Secd.Var 0)) |}]
+  [%expect {| debruijn: (Compiler.DAbs (Compiler.DVar 0)) |}]
 
 let%expect_test "let" =
   show_debruijn "let false_ = fun x -> fun y -> y in false_";
   [%expect
     {|
-    debruijn: (Secd.Let ((Secd.Abs (Secd.Abs (Secd.Var 0))), (Secd.Var 0))) |}]
+    debruijn: (Compiler.DLet ((Compiler.DAbs (Compiler.DAbs (Compiler.DVar 0))),
+                 (Compiler.DVar 0))) |}]
 
 let%expect_test "succ" =
   show_debruijn "fun z -> (succ 1)";
-  [%expect {| debruijn: (Secd.Abs (Secd.Succ (Secd.Int 1))) |}]
+  [%expect {| debruijn: (Compiler.DAbs (Compiler.DSucc (Compiler.DInt 1))) |}]
 
 let%expect_test "pred" =
   show_debruijn "fun z -> (pred 1)";
-  [%expect {| debruijn: (Secd.Abs (Secd.Pred (Secd.Int 1))) |}]
+  [%expect {| debruijn: (Compiler.DAbs (Compiler.DPred (Compiler.DInt 1))) |}]
 
 let%expect_test "debruijn" =
   show_debruijn "fun z -> (is_zero 1)";
-  [%expect {|
-    debruijn: (Secd.Abs (Secd.IsZero (Secd.Int 1))) |}]
+  [%expect
+    {|
+    debruijn: (Compiler.DAbs (Compiler.DIsZero (Compiler.DInt 1))) |}]
 
 let run_code label code =
   let lexbuf = Lexing.from_string code in
   let parsed = Parser.expr Lexer.token lexbuf in
-  let debruijn = Ast.to_debruijn parsed in
-  let compiled = Secd.compile debruijn in
+  let debruijn = Compiler.to_debruijn parsed in
+  let compiled = Compiler.compile debruijn in
   let result = Secd.execute compiled in
   Format.printf "%s: %a\n%!" label Secd.pp_answer result
 

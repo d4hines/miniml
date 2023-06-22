@@ -1,16 +1,17 @@
+open Compiler
 open Secd
 
-let lambda expr = Abs expr
-let var v = Var v
-let apply a b = App (a, b)
+let lambda expr = DAbs expr
+let var v = DVar v
+let apply a b = DApp (a, b)
 let apply2 f a b = apply (apply f a) b
-let int x = Int x
-let unit = Int 0
+let int x = DInt x
+let unit = DInt 0
 let true_ = lambda (lambda (apply (var 1) unit))
 let false_ = lambda (lambda (apply (var 0) unit))
-let succ x = Succ x
-let pred x = Pred x
-let is_zero x = IsZero x
+let succ x = DSucc x
+let pred x = DPred x
+let is_zero x = DIsZero x
 let if_e = lambda (lambda (lambda (apply (apply (var 2) (var 1)) (var 0))))
 
 let if_ condition consequent alternative =
@@ -66,8 +67,8 @@ let%expect_test "secd tests" =
   (* run_code "plus_z 1 2" @@ (int 1 + int 2); *)
   run_code "close: true" @@ true_;
   run_code "close: false" @@ false_;
-  run_code "let" @@ Let (int 1, var 0);
-  run_code "nested let" @@ Let (int 1, Let (int 2, var 1));
+  run_code "let" @@ DLet (int 1, var 0);
+  run_code "nested let" @@ DLet (int 1, DLet (int 2, var 1));
   [%expect
     {|
     true 0 1: (Secd.I 0)

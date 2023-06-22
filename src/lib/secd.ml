@@ -1,16 +1,5 @@
 (* Adapted from https://github.com/techcentaur/Krivine-Machine/blob/master/SECD.ml *)
 
-type debruijn_expr =
-  | Int of int
-  | Var of int
-  | Abs of debruijn_expr
-  | App of debruijn_expr * debruijn_expr
-  | Let of debruijn_expr * debruijn_expr
-  | Succ of debruijn_expr
-  | Pred of debruijn_expr
-  | IsZero of debruijn_expr
-[@@deriving show]
-
 type opcode =
   | INT of int
   | BOOL of bool
@@ -32,11 +21,6 @@ and environment = table
 and control = opcode list
 and dump = (stack * environment * control) list [@@deriving show]
 
-let initial_env =
-  [ (* ("x", I 3);
-       ("y", I 5);
-       ("z", B true) *) ]
-
 exception InvalidOperation
 exception Variable_not_intialized
 exception StackError
@@ -49,17 +33,6 @@ let lookup x env =
   | None ->
       Format.eprintf "target: %d, stack: %a\n" x pp_environment env;
       raise Variable_not_intialized
-
-let rec compile e =
-  match e with
-  | Int i -> [ INT i ]
-  | Var x -> [ LOOKUP x ]
-  | Abs i2 -> [ CLOS (compile i2 @ [ RET ]) ]
-  | App (i1, i2) -> compile i1 @ compile i2 @ [ CALL ]
-  | Let (i1, i2) -> compile i1 @ [ GRAB ] @ compile i2 @ [ ENDLET ]
-  | Succ i -> compile i @ [ SUCC ]
-  | Pred i -> compile i @ [ PRED ]
-  | IsZero i -> compile i @ [ ISZERO ]
 
 let true_v = Vclos ([], [ CLOS [ LOOKUP 1; INT 0; CALL; RET ]; RET ])
 let false_v = Vclos ([], [ CLOS [ LOOKUP 0; INT 0; CALL; RET ]; RET ])
@@ -82,4 +55,4 @@ let rec secdmachine state =
       secdmachine ((if i1 == 0 then true_v else false_v) :: s, e, c, d)
   | _ -> raise InvalidOperation
 
-let execute oplist = secdmachine ([], initial_env, oplist, [])
+let execute oplist = secdmachine ([], [], oplist, [])
