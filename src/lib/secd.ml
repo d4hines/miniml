@@ -2,7 +2,6 @@
 
 type opcode =
   | INT of int
-  | BOOL of bool
   | LOOKUP of int
   | CLOS of opcode list
   | CALL
